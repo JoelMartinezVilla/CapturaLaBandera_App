@@ -10,6 +10,7 @@ buildscript {
   }
   dependencies {
     classpath "com.android.tools.build:gradle:8.5.2"
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 
   }
 }
@@ -25,6 +26,7 @@ allprojects {
       testOutputDir file('build/classes/java/test')
     }
   }
+
   ext {
     wsVersion = '1.9.10.3'
   }
@@ -36,6 +38,7 @@ allprojects {
 
 configure(subprojects - project(':android')) {
   apply plugin: 'java-library'
+  apply plugin: 'kotlin'
   sourceCompatibility = 8
 
   // From https://lyze.dev/2021/04/29/libGDX-Internal-Assets-List/
@@ -61,11 +64,14 @@ configure(subprojects - project(':android')) {
   compileJava {
     options.incremental = true
   }
+  compileKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+  compileTestKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+
 }
 
 subprojects {
   version = "$projectVersion"
-  ext.appName = 'CapturDeBander'
+  ext.appName = 'bandera'
   repositories {
     mavenCentral()
     maven { url 'https://s01.oss.sonatype.org' }
@@ -77,4 +83,4 @@ subprojects {
   }
 }
 
-eclipse.project.name = 'CapturDeBander' + '-parent'
+eclipse.project.name = 'bandera' + '-parent'

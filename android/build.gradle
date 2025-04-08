@@ -6,17 +6,17 @@ buildscript {
   }
 }
 apply plugin: 'com.android.application'
-
+apply plugin: 'kotlin-android'
 
 android {
-  namespace "io.github.capturdebander"
+  namespace "com.miniflag"
   compileSdk 34
   sourceSets {
     main {
       manifest.srcFile 'AndroidManifest.xml'
-      java.setSrcDirs(['src/main/java'])
-      aidl.setSrcDirs(['src/main/java'])
-      renderscript.setSrcDirs(['src/main/java'])
+      java.setSrcDirs(['src/main/java', 'src/main/kotlin'])
+      aidl.setSrcDirs(['src/main/java', 'src/main/kotlin'])
+      renderscript.setSrcDirs(['src/main/java', 'src/main/kotlin'])
       res.setSrcDirs(['res'])
       assets.setSrcDirs(['../assets'])
       jniLibs.setSrcDirs(['libs'])
@@ -31,7 +31,7 @@ android {
 		}
   }
   defaultConfig {
-    applicationId 'io.github.capturdebander'
+    applicationId 'com.miniflag'
     minSdkVersion 19
     targetSdkVersion 34
     versionCode 1
@@ -49,6 +49,9 @@ android {
       proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
     }
   }
+
+  kotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+
 }
 
 repositories {
@@ -68,6 +71,11 @@ dependencies {
   natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"
   natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86"
   natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86_64"
+
+  natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-arm64-v8a"
+  natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-armeabi-v7a"
+  natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86"
+  natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86_64"
 
 }
 
@@ -121,7 +129,7 @@ tasks.register('run', Exec) {
   }
 
   def adb = path + "/platform-tools/adb"
-  commandLine "$adb", 'shell', 'am', 'start', '-n', 'io.github.capturdebander/io.github.capturdebander.android.AndroidLauncher'
+  commandLine "$adb", 'shell', 'am', 'start', '-n', 'com.miniflag/com.miniflag.android.AndroidLauncher'
 }
 
 eclipse.project.name = appName + "-android"
