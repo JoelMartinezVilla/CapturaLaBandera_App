@@ -2,3 +2,4 @@ libgdx.png
 uiskin.atlas
 uiskin.json
 uiskin.png
+default.fnt
