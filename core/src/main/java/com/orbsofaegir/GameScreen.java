@@ -34,6 +34,8 @@ public class GameScreen implements Screen {
     private ShapeRenderer shapeRenderer;
     private BitmapFont font;
     private TextButton exitButton;
+    private Texture backgroundTexture;
+
 
     Texture orbTexture;
 
@@ -71,6 +73,9 @@ public class GameScreen implements Screen {
         // Cargar Skin para la interfaz
         Skin skin = new Skin(Gdx.files.internal("skin/uiskin.json"));
 
+        // Cargar el background
+        backgroundTexture = new Texture("game_assets/backgrounds/background.png");
+        
         font = new BitmapFont();
 
         // Configurar botón "Menu" para regresar al MainMenuScreen
@@ -130,44 +135,46 @@ public class GameScreen implements Screen {
         if(conn.gameState == null) {
             return;
         }
+
+        // Iniciar SpriteBatch para el fondo y las texturas
+        batch.begin();
+
+        // Dibuja el fondo primero
+        batch.draw(backgroundTexture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+        // Dibuja el orbe si existe
+        if(conn.gameState.has("flagPos")) {
+            TextureRegion orbRegion = new TextureRegion(orbTexture, 0, 0, 16, orbTexture.getHeight());
+
+            float orbX = conn.gameState.get("flagPos").getFloat("dx") * Gdx.graphics.getWidth();
+            float orbY = conn.gameState.get("flagPos").getFloat("dy") * Gdx.graphics.getHeight();
+            batch.draw(orbRegion, orbX, orbY, orbSize, orbSize);
+        }
+
+        String connectionStatus = conn.isConnected() ? "Connected" : "NO CONNECTION STABLISHED";
+        font.draw(batch, connectionStatus, 20, Gdx.graphics.getHeight() - 20);
+
+        batch.end();
+
+        // Dibuja los jugadores con ShapeRenderer
         if (conn.gameState.has("players")) {
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            shapeRenderer.setColor(Color.BLUE);
+
             for (JsonValue player : conn.gameState.get("players")) {
                 float playerX = player.getFloat("x") * Gdx.graphics.getWidth();
                 float playerY = (1f - player.getFloat("y")) * Gdx.graphics.getHeight();
-
-                // Dibujar el player (cuadrado) usando ShapeRenderer
-                shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-                shapeRenderer.setColor(Color.BLUE);
                 shapeRenderer.rect(playerX, playerY, playerSize, playerSize);
-                shapeRenderer.end();
             }
-        }
-        TextureRegion orbRegion;
-        float orbX;
-        float orbY;
 
-        if(conn.gameState.has("flagPos")) {
-            orbRegion = new TextureRegion(orbTexture, 0, 0, 16, orbTexture.getHeight());
-
-            orbX = conn.gameState.get("flagPos").getFloat("dx") * Gdx.graphics.getWidth();
-            orbY = (conn.gameState.get("flagPos").getFloat("dy") * Gdx.graphics.getHeight());
-            Gdx.app.log("FLAG", "X: "+orbX+", Y: "+orbY);
-        }else {
-            Gdx.app.log("NO FLAG", "No flag");
-            return;
+            shapeRenderer.end();
         }
 
-
-
-        batch.begin();
-        batch.draw(orbRegion, orbX, orbY, orbSize, orbSize);
-        String connectionStatus = conn.isConnected() ? "Connected" : "NO CONNECTION STABLISHED";
-        font.draw(batch, connectionStatus, 20, Gdx.graphics.getHeight() - 20);
-        batch.end();
-        // Actualizar y dibujar la interfaz (Stage)
-        stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1/30f));
+        // Dibujar UI por encima
+        stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));
         stage.draw();
     }
+
 
     protected String virtualJoystickControl() {
         for (int i = 0; i < 10; i++) {
