@@ -3,6 +3,8 @@ package com.orbsofaegir;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -18,6 +20,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 import org.w3c.dom.Text;
@@ -27,6 +30,8 @@ import java.util.ArrayList;
 public class GameScreen implements Screen {
     private final Game game;
     private final WSManager conn;
+    private OrthographicCamera camera;
+    private FitViewport viewport;
     private Stage stage;
     private SpriteBatch batch;
     private ShapeRenderer shapeRenderer;
@@ -54,9 +59,19 @@ public class GameScreen implements Screen {
     private final String[] COLORS = {"blue", "red", "green", "yellow"};
     private final String[] DIRECTIONS = {"down", "right", "up", "left"};
     private final float FRAME_DURATION = 0.1f;
+    private final float SCREEN_WIDTH = 1920f;
+    private final float SCREEN_HEIGHT = 1080f;
+    private final float WORLD_WIDTH = 3000f;
+    private final float WORLD_HEIGHT = 3000f;
 
     public GameScreen(Game game) {
         this.game = game;
+
+        // Prepare camera and viewport
+        camera = new OrthographicCamera();
+        viewport = new FitViewport(SCREEN_WIDTH, SCREEN_HEIGHT, camera);
+        viewport.apply();
+
         // Conecta al servidor mediante WebSocket y asigna este objeto como listener
         conn = WSManager.getInstance();
         up = new Rectangle(0, Gdx.graphics.getHeight() * 2f / 3f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight() / 3f);
@@ -109,13 +124,18 @@ public class GameScreen implements Screen {
         }
         orbAnimation = new Animation<>(FRAME_DURATION, orbFrames);
 
+        camera.position.set(camera.viewportWidth / 2, camera.viewportHeight / 2, 0);
+        camera.update();
+
         batch = new SpriteBatch();
+        batch.setProjectionMatrix(camera.combined);
         shapeRenderer = new ShapeRenderer();
-        stage = new Stage(new ScreenViewport());
+        stage = new Stage(viewport, batch);
         Gdx.input.setInputProcessor(stage);
 
         // Cargar Skin para la interfaz
-        Skin skin = new Skin(Gdx.files.internal("skin/uiskin.json"));
+        FileHandle f = Gdx.files.internal("uiskin.json");
+        Skin skin = new Skin(f);
 
         // Cargar el background
         backgroundTexture = new Texture("game_assets/backgrounds/background.png");
@@ -148,7 +168,7 @@ public class GameScreen implements Screen {
 
     @Override
     public void resize(int width, int height) {
-        stage.getViewport().update(width, height, true);
+        viewport.update(width, height);
     }
 
     @Override
@@ -183,7 +203,7 @@ public class GameScreen implements Screen {
 
         batch.begin();
 
-        batch.draw(backgroundTexture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        batch.draw(backgroundTexture, 0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
         // DRAW ORB
         if(conn.gameState.has("flagPos")) {
@@ -217,6 +237,11 @@ public class GameScreen implements Screen {
         }
         float playerX = player.getFloat("x") * Gdx.graphics.getWidth();
         float playerY = (1f - player.getFloat("y")) * Gdx.graphics.getHeight();
+
+        camera.position.set(playerX, playerY, 0);
+        camera.update();
+        batch.setProjectionMatrix(camera.combined);
+
         String direction = player.getString("direction");
         boolean moving = player.getBoolean("moving");
         TextureRegion currentFrame = null;
