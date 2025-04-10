@@ -109,7 +109,6 @@ public class MenuScreen implements Screen {
         startButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                // Enviar datos
                 conn.testHttpConnection();
                 game.setScreen(new GameScreen(game));
             }

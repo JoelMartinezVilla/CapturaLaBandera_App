@@ -3,8 +3,8 @@ package com.orbsofaegir;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -14,42 +14,46 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.ui.Touchpad;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.JsonValue;
-import com.badlogic.gdx.utils.JsonWriter;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.badlogic.gdx.utils.Json;
 
-import java.util.HashMap;
-import java.util.Map;
+import org.w3c.dom.Text;
+
+import java.util.ArrayList;
 
 public class GameScreen implements Screen {
-    private Game game;
-    private WSManager conn;
+    private final Game game;
+    private final WSManager conn;
     private Stage stage;
     private SpriteBatch batch;
     private ShapeRenderer shapeRenderer;
     private BitmapFont font;
-    private TextButton exitButton;
     private Texture backgroundTexture;
 
+    private ArrayList<Texture> idleCharacters;
+    private ArrayList<Texture> runCharacters;
+    private Animation<TextureRegion>[][] idleAnimations;
+    private Animation<TextureRegion>[][] runAnimations;
 
     Texture orbTexture;
+    Animation<TextureRegion> orbAnimation;
 
     Rectangle up;
     Rectangle down;
     Rectangle left;
     Rectangle right;
 
-    // Propiedades del "player" (cuadrado)
-    private float playerSize = 50f;
+    private float playerSize = 150f;
+    private float orbSize = 70f;
 
-    // Propiedades del item (opcional)
-    private float itemX, itemY;
-    private float orbSize = 100f;
+    private float stateTime = 0;
+
+    private final String[] COLORS = {"blue", "red", "green", "yellow"};
+    private final String[] DIRECTIONS = {"down", "right", "up", "left"};
+    private final float FRAME_DURATION = 0.1f;
 
     public GameScreen(Game game) {
         this.game = game;
@@ -63,7 +67,47 @@ public class GameScreen implements Screen {
 
     @Override
     public void show() {
+        // Characters load
+        idleCharacters = new ArrayList<>();
+        runCharacters = new ArrayList<>();
+        idleAnimations = new Animation[4][4];
+        runAnimations = new Animation[4][4];
+        for (int i = 0; i < COLORS.length; i++) {
+            String color = COLORS[i];
+
+            // Carga las texturas de sprites
+            Texture idleTexture = new Texture("game_assets/sprites/spritesheet_idle_" + color + ".png");
+            Texture runTexture = new Texture("game_assets/sprites/spritesheet_run_" + color + ".png");
+
+            idleCharacters.add(idleTexture);
+            runCharacters.add(runTexture);
+
+            TextureRegion[][] idleTmp = TextureRegion.split(idleTexture, 32, 32);
+            TextureRegion[][] runTmp = TextureRegion.split(runTexture, 32, 32);
+
+            for (int j = 0; j < 4; j++) { // Cada dirección
+                TextureRegion[] idleFrames = new TextureRegion[8];
+                TextureRegion[] runFrames = new TextureRegion[8];
+
+                for (int k = 0; k < 8; k++) { // Cada frame de animación
+                    idleFrames[k] = idleTmp[j][k];
+                    runFrames[k] = runTmp[j][k];
+                }
+
+                idleAnimations[i][j] = new Animation<>(FRAME_DURATION, idleFrames);
+                runAnimations[i][j] = new Animation<>(FRAME_DURATION, runFrames);
+            }
+        }
+
+        // Orb load
         orbTexture = new Texture("game_assets/items/orb.png");
+        TextureRegion[][] orbTmp = TextureRegion.split(orbTexture, 16, 16);
+        // Gdx.app.log("ORBTMP", String.valueOf(orbTmp.length));
+        TextureRegion[] orbFrames = new TextureRegion[28];
+        for(int i = 0; i < 28; i++) {
+            orbFrames[i] = orbTmp[0][i];
+        }
+        orbAnimation = new Animation<>(FRAME_DURATION, orbFrames);
 
         batch = new SpriteBatch();
         shapeRenderer = new ShapeRenderer();
@@ -75,11 +119,11 @@ public class GameScreen implements Screen {
 
         // Cargar el background
         backgroundTexture = new Texture("game_assets/backgrounds/background.png");
-        
+
         font = new BitmapFont();
 
         // Configurar botón "Menu" para regresar al MainMenuScreen
-        exitButton = new TextButton("Menu", skin);
+        TextButton exitButton = new TextButton("Menu", skin);
         exitButton.setPosition(Gdx.graphics.getWidth() * 0.9f, Gdx.graphics.getHeight() * 0.9f);
         exitButton.addListener(new ChangeListener() {
             @Override
@@ -93,8 +137,9 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        // Limpiar pantalla con un color de fondo oscuro
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
+
+        stateTime += Gdx.graphics.getDeltaTime();
 
         gameLogic();
 
@@ -136,43 +181,61 @@ public class GameScreen implements Screen {
             return;
         }
 
-        // Iniciar SpriteBatch para el fondo y las texturas
         batch.begin();
 
-        // Dibuja el fondo primero
         batch.draw(backgroundTexture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-        // Dibuja el orbe si existe
+        // DRAW ORB
         if(conn.gameState.has("flagPos")) {
-            TextureRegion orbRegion = new TextureRegion(orbTexture, 0, 0, 16, orbTexture.getHeight());
-
             float orbX = conn.gameState.get("flagPos").getFloat("dx") * Gdx.graphics.getWidth();
             float orbY = conn.gameState.get("flagPos").getFloat("dy") * Gdx.graphics.getHeight();
-            batch.draw(orbRegion, orbX, orbY, orbSize, orbSize);
+
+            TextureRegion currentFrame = orbAnimation.getKeyFrame(stateTime, true);
+            batch.draw(currentFrame, orbX, orbY, orbSize, orbSize);
         }
 
-        String connectionStatus = conn.isConnected() ? "Connected" : "NO CONNECTION STABLISHED";
-        font.draw(batch, connectionStatus, 20, Gdx.graphics.getHeight() - 20);
-
-        batch.end();
-
-        // Dibuja los jugadores con ShapeRenderer
+        // DRAW PLAYERS
         if (conn.gameState.has("players")) {
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-            shapeRenderer.setColor(Color.BLUE);
-
-            for (JsonValue player : conn.gameState.get("players")) {
-                float playerX = player.getFloat("x") * Gdx.graphics.getWidth();
-                float playerY = (1f - player.getFloat("y")) * Gdx.graphics.getHeight();
-                shapeRenderer.rect(playerX, playerY, playerSize, playerSize);
+            JsonValue players = conn.gameState.get("players");
+            for(int i = 0; i < players.size; i++) {
+                JsonValue player = players.get(i);
+                drawPlayer(player, COLORS[i]);
             }
 
             shapeRenderer.end();
         }
 
-        // Dibujar UI por encima
+        batch.end();
+
         stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));
         stage.draw();
+    }
+
+    private void drawPlayer(JsonValue player, String color) {
+        if(!player.has("direction") || !player.has("moving")) {
+            return;
+        }
+        float playerX = player.getFloat("x") * Gdx.graphics.getWidth();
+        float playerY = (1f - player.getFloat("y")) * Gdx.graphics.getHeight();
+        String direction = player.getString("direction");
+        boolean moving = player.getBoolean("moving");
+        TextureRegion currentFrame = null;
+        for(int i = 0; i < COLORS.length; i++) {
+            for(int j = 0; j < DIRECTIONS.length; j++) {
+                if(DIRECTIONS[j].equals(direction) && COLORS[i].equals(color)) {
+                    if(moving) {
+                        currentFrame = runAnimations[i][j].getKeyFrame(stateTime, true);
+                    }else {
+                        currentFrame = idleAnimations[i][j].getKeyFrame(stateTime, true);
+                    }
+                }
+            }
+        }
+        if(currentFrame == null) {
+            return;
+        }
+        batch.draw(currentFrame, playerX, playerY, playerSize, playerSize);
+
     }
 
 
