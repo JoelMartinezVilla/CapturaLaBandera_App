@@ -62,35 +62,6 @@ public class WSManager {
         return isConnected;
     }
 
-    public void testHttpConnection() {
-        System.out.println("Intentando conexión HTTP...");
-        HttpRequestBuilder requestBuilder = new HttpRequestBuilder();
-        String fullUrl = "https://" + address + ":" + port + "/test";
-
-        Net.HttpRequest request = requestBuilder.newRequest()
-            .method(Net.HttpMethods.GET)
-            .url(fullUrl)
-            .build();
-
-        Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
-            @Override
-            public void handleHttpResponse(Net.HttpResponse httpResponse) {
-                String response = httpResponse.getResultAsString();
-                System.out.println("Respuesta del servidor HTTP: " + response);
-            }
-
-            @Override
-            public void failed(Throwable t) {
-                System.out.println("Error al conectar con el servidor HTTP: " + t.getMessage());
-            }
-
-            @Override
-            public void cancelled() {
-                System.out.println("Petición HTTP cancelada.");
-            }
-        });
-    }
-
     // WS Handler
     private class WSListener implements WebSocketListener {
         @Override

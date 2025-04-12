@@ -61,7 +61,7 @@ public class GameScreen implements Screen {
     private final float FRAME_DURATION = 0.1f;
     private final float SCREEN_WIDTH = 1920f;
     private final float SCREEN_HEIGHT = 1080f;
-    private final float WORLD_WIDTH = 3000f;
+    private final float WORLD_WIDTH = 4000f;
     private final float WORLD_HEIGHT = 3000f;
 
     public GameScreen(Game game) {
@@ -161,6 +161,14 @@ public class GameScreen implements Screen {
 
         stateTime += Gdx.graphics.getDeltaTime();
 
+        if(conn.gameState != null) {
+            if(conn.gameState.has("started")) {
+                if(!conn.gameState.getBoolean("started")) {
+                    game.setScreen(new MenuScreen((MainGame) game));
+                }
+            }
+        }
+
         gameLogic();
 
         draw();
@@ -179,7 +187,6 @@ public class GameScreen implements Screen {
 
     @Override
     public void hide() {
-        dispose();
     }
 
     @Override
@@ -207,8 +214,8 @@ public class GameScreen implements Screen {
 
         // DRAW ORB
         if(conn.gameState.has("flagPos")) {
-            float orbX = conn.gameState.get("flagPos").getFloat("dx") * Gdx.graphics.getWidth();
-            float orbY = conn.gameState.get("flagPos").getFloat("dy") * Gdx.graphics.getHeight();
+            float orbX = conn.gameState.get("flagPos").getFloat("dx") * WORLD_WIDTH;
+            float orbY = conn.gameState.get("flagPos").getFloat("dy") * WORLD_HEIGHT;
 
             TextureRegion currentFrame = orbAnimation.getKeyFrame(stateTime, true);
             batch.draw(currentFrame, orbX, orbY, orbSize, orbSize);
@@ -235,12 +242,15 @@ public class GameScreen implements Screen {
         if(!player.has("direction") || !player.has("moving")) {
             return;
         }
-        float playerX = player.getFloat("x") * Gdx.graphics.getWidth();
-        float playerY = (1f - player.getFloat("y")) * Gdx.graphics.getHeight();
+        float playerX = player.getFloat("x") * WORLD_WIDTH;
+        float playerY = (1f - player.getFloat("y")) * WORLD_HEIGHT;
 
-        camera.position.set(playerX, playerY, 0);
-        camera.update();
-        batch.setProjectionMatrix(camera.combined);
+        if(player.getString("id").equals(conn.playerId)) {
+            camera.position.set(playerX, playerY, 0);
+            camera.update();
+            batch.setProjectionMatrix(camera.combined);
+        }
+
 
         String direction = player.getString("direction");
         boolean moving = player.getBoolean("moving");

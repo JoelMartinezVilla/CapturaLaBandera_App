@@ -14,6 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
@@ -29,6 +30,9 @@ public class MenuScreen implements Screen {
     private Label playersLabel;
     private Label.LabelStyle labelStyle;
     private Texture orbTexture;
+    private TextButton startButton;
+
+    private int waitingTime = 0;
 
     public MenuScreen(MainGame game) {
 
@@ -92,7 +96,7 @@ public class MenuScreen implements Screen {
         stage.addActor(playersLabel);
 
         // Boton Start Game
-        TextButton startButton = new TextButton("Start Game", buttonStyle);
+        startButton = new TextButton("Ready", buttonStyle);
 
         float buttonWidth = Gdx.graphics.getWidth() * 0.2f;
         float buttonHeight = Gdx.graphics.getHeight() * 0.15f;
@@ -109,8 +113,19 @@ public class MenuScreen implements Screen {
         startButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                conn.testHttpConnection();
-                game.setScreen(new GameScreen(game));
+                if(waitingTime == 0) {
+                    conn.sendData("{\"type\":\"ready\", \"id\":\""+conn.playerId+"\"}");
+                    waitingTime = 5;
+                    for(int i = 0; i < 5; i++) {
+                        Timer.schedule(new Timer.Task() {
+                            @Override
+                            public void run() {
+                                waitingTime--;
+                            }
+                        }, i+1);
+                    }
+                    startButton.setDisabled(true);
+                }
             }
         });
 
@@ -123,6 +138,19 @@ public class MenuScreen implements Screen {
     @Override
     public void render(float delta) {
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
+
+        if(waitingTime > 0) {
+            startButton.setText("Waiting... "+waitingTime+"s left");
+        }
+
+        if(conn.gameState != null) {
+            if(conn.gameState.has("started")) {
+                if(conn.gameState.getBoolean("started")) {
+                    game.setScreen(new GameScreen(game));
+                }
+            }
+
+        }
 
         batch.begin();
 
@@ -166,7 +194,7 @@ public class MenuScreen implements Screen {
 
     @Override
     public void hide() {
-        dispose();
+
     }
 
     @Override
