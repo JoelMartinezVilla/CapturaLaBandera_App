@@ -62,7 +62,7 @@ public class GameScreen implements Screen {
     private final float SCREEN_WIDTH = 1920f;
     private final float SCREEN_HEIGHT = 1080f;
     private final float WORLD_WIDTH = 4000f;
-    private final float WORLD_HEIGHT = 3000f;
+    private final float WORLD_HEIGHT = 4000f;
 
     public GameScreen(Game game) {
         this.game = game;
