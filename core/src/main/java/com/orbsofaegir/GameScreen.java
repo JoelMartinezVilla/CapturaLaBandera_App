@@ -142,17 +142,6 @@ public class GameScreen implements Screen {
 
         font = new BitmapFont();
 
-        // Configurar botón "Menu" para regresar al MainMenuScreen
-        TextButton exitButton = new TextButton("Menu", skin);
-        exitButton.setPosition(Gdx.graphics.getWidth() * 0.9f, Gdx.graphics.getHeight() * 0.9f);
-        exitButton.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.setScreen(new MenuScreen((MainGame)game));
-            }
-        });
-        stage.addActor(exitButton);
-
     }
 
     @Override
@@ -213,12 +202,14 @@ public class GameScreen implements Screen {
         batch.draw(backgroundTexture, 0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
         // DRAW ORB
-        if(conn.gameState.has("flagPos")) {
-            float orbX = conn.gameState.get("flagPos").getFloat("dx") * WORLD_WIDTH;
-            float orbY = conn.gameState.get("flagPos").getFloat("dy") * WORLD_HEIGHT;
+        if(conn.gameState.has("flag")) {
+            if(conn.gameState.get("flag").getBoolean("available")) {
+                float orbX = conn.gameState.get("flag").getFloat("dx") * WORLD_WIDTH;
+                float orbY = (1f - conn.gameState.get("flag").getFloat("dy")) * WORLD_HEIGHT;
 
-            TextureRegion currentFrame = orbAnimation.getKeyFrame(stateTime, true);
-            batch.draw(currentFrame, orbX, orbY, orbSize, orbSize);
+                TextureRegion currentFrame = orbAnimation.getKeyFrame(stateTime, true);
+                batch.draw(currentFrame, orbX, orbY, orbSize, orbSize);
+            }
         }
 
         // DRAW PLAYERS
@@ -226,7 +217,7 @@ public class GameScreen implements Screen {
             JsonValue players = conn.gameState.get("players");
             for(int i = 0; i < players.size; i++) {
                 JsonValue player = players.get(i);
-                drawPlayer(player, COLORS[i]);
+                drawPlayer(player);
             }
 
             shapeRenderer.end();
@@ -238,12 +229,14 @@ public class GameScreen implements Screen {
         stage.draw();
     }
 
-    private void drawPlayer(JsonValue player, String color) {
-        if(!player.has("direction") || !player.has("moving")) {
+    private void drawPlayer(JsonValue player) {
+        if(!player.has("direction") || !player.has("moving") || !player.has("color")) {
             return;
         }
         float playerX = player.getFloat("x") * WORLD_WIDTH;
         float playerY = (1f - player.getFloat("y")) * WORLD_HEIGHT;
+
+        String color = player.getString("color");
 
         if(player.getString("id").equals(conn.playerId)) {
             camera.position.set(playerX, playerY, 0);

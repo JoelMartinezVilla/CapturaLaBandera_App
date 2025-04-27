@@ -76,7 +76,7 @@ public class MenuScreen implements Screen {
         labelStyle.fontColor = Color.WHITE;
 
 
-        // Label con número de jugadores
+        // Label con número de jugadoresº
         if(conn.gameState != null) {
             playersLabel = new Label("Players: "+conn.gameState.get("players").size, labelStyle);
         }
@@ -115,15 +115,6 @@ public class MenuScreen implements Screen {
             public void clicked(InputEvent event, float x, float y) {
                 if(waitingTime == 0) {
                     conn.sendData("{\"type\":\"ready\", \"id\":\""+conn.playerId+"\"}");
-                    waitingTime = 5;
-                    for(int i = 0; i < 5; i++) {
-                        Timer.schedule(new Timer.Task() {
-                            @Override
-                            public void run() {
-                                waitingTime--;
-                            }
-                        }, i+1);
-                    }
                     startButton.setDisabled(true);
                 }
             }
@@ -139,14 +130,19 @@ public class MenuScreen implements Screen {
     public void render(float delta) {
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
 
-        if(waitingTime > 0) {
-            startButton.setText("Waiting... "+waitingTime+"s left");
-        }
+
 
         if(conn.gameState != null) {
             if(conn.gameState.has("started")) {
                 if(conn.gameState.getBoolean("started")) {
                     game.setScreen(new GameScreen(game));
+                }
+                waitingTime = conn.gameState.getInt("timeToStart");
+                if(waitingTime > 0) {
+                    startButton.setText("Waiting... "+waitingTime+"s left");
+                }else {
+                    startButton.setText("Ready");
+                    startButton.setDisabled(false);
                 }
             }
 
