@@ -56,6 +56,8 @@ public class GameScreen implements Screen {
 
     private float stateTime = 0;
 
+    private String pointsText = "0";
+
     private final String[] COLORS = {"blue", "red", "green", "yellow"};
     private final String[] DIRECTIONS = {"down", "right", "up", "left"};
     private final float FRAME_DURATION = 0.1f;
@@ -239,6 +241,13 @@ public class GameScreen implements Screen {
         String color = player.getString("color");
 
         if(player.getString("id").equals(conn.playerId)) {
+
+            pointsText = String.valueOf(player.getInt("points"));
+            float textX = SCREEN_WIDTH - 200; // Ajusta según largo del texto
+            float textY = SCREEN_HEIGHT - 20; // Un poco por debajo del borde
+
+            font.draw(batch, pointsText, textX, textY);
+
             camera.position.set(playerX, playerY, 0);
             camera.update();
             batch.setProjectionMatrix(camera.combined);
