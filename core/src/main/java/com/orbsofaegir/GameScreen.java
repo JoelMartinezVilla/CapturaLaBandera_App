@@ -4,12 +4,14 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
@@ -26,6 +28,8 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import org.w3c.dom.Text;
 
 import java.util.ArrayList;
+
+import jdk.internal.org.jline.utils.Log;
 
 public class GameScreen implements Screen {
     private final Game game;
@@ -56,6 +60,7 @@ public class GameScreen implements Screen {
 
     private float stateTime = 0;
 
+    private OrthographicCamera hudCamera;
     private String pointsText = "0";
 
     private final String[] COLORS = {"blue", "red", "green", "yellow"};
@@ -142,7 +147,15 @@ public class GameScreen implements Screen {
         // Cargar el background
         backgroundTexture = new Texture("game_assets/backgrounds/background.png");
 
-        font = new BitmapFont();
+        hudCamera = new OrthographicCamera();
+        hudCamera.setToOrtho(false, SCREEN_WIDTH, SCREEN_HEIGHT);
+        hudCamera.update();
+        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/VT323.ttf"));
+        FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        parameter.size = 64;
+
+        font = generator.generateFont(parameter);
+        generator.dispose();
 
     }
 
@@ -227,6 +240,41 @@ public class GameScreen implements Screen {
 
         batch.end();
 
+
+        if (conn.gameState.has("players")) {
+            JsonValue players = conn.gameState.get("players");
+            batch.begin();
+            for(int i = 0; i < players.size; i++) {
+                JsonValue player = players.get(i);
+
+                if(player.getString("id").equals(conn.playerId)) {
+                    pointsText = String.valueOf(player.getInt("points"));
+                    int timeLeft = conn.gameState.getInt("time");
+                    String minutesLeft = String.valueOf(timeLeft / 60);
+                    String secondsLeft = String.format("%02d", timeLeft % 60);
+
+                    batch.setProjectionMatrix(hudCamera.combined);
+
+
+                    font.draw(batch, pointsText, SCREEN_WIDTH - 130, SCREEN_HEIGHT - 20);
+                    font.draw(batch, minutesLeft + ":" + secondsLeft, SCREEN_WIDTH - 130, SCREEN_HEIGHT - 80);
+                }else {
+                    FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/VT323.ttf"));
+                    FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+                    parameter.size = 64;
+                    parameter.color = COLORS[i].equals("red") ? Color.RED : COLORS[i].equals("yellow") ? Color.YELLOW : COLORS[i].equals("blue") ? Color.BLUE : Color.GREEN ;
+                    font = generator.generateFont(parameter);
+                    font.draw(batch, pointsText, SCREEN_WIDTH - 130, SCREEN_HEIGHT - 20);
+                    parameter.color = Color.WHITE;
+                    font = generator.generateFont(parameter);
+                }
+            }
+            batch.end();
+
+            shapeRenderer.end();
+        }
+
+
         stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));
         stage.draw();
     }
@@ -241,13 +289,6 @@ public class GameScreen implements Screen {
         String color = player.getString("color");
 
         if(player.getString("id").equals(conn.playerId)) {
-
-            pointsText = String.valueOf(player.getInt("points"));
-            float textX = SCREEN_WIDTH - 200; // Ajusta según largo del texto
-            float textY = SCREEN_HEIGHT - 20; // Un poco por debajo del borde
-
-            font.draw(batch, pointsText, textX, textY);
-
             camera.position.set(playerX, playerY, 0);
             camera.update();
             batch.setProjectionMatrix(camera.combined);
