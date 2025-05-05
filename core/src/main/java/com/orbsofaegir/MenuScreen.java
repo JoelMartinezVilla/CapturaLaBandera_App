@@ -17,6 +17,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.Animation;
 
 public class MenuScreen implements Screen {
     private final MainGame game;
@@ -29,6 +30,8 @@ public class MenuScreen implements Screen {
     private Label.LabelStyle labelStyle;
     private Label countLabel;
     private Texture orbTexture;
+    private Animation<TextureRegion> orbAnimation;
+    private float stateTime = 0;
     private Texture backgroundTexture;
     private TextButton startButton;
     private boolean isReady;
@@ -97,7 +100,7 @@ public class MenuScreen implements Screen {
             Gdx.graphics.getHeight() * 0.7f
         );
         countLabel.setPosition(
-            Gdx.graphics.getWidth() * 0.085f,
+            Gdx.graphics.getWidth() * 0.43f,
             Gdx.graphics.getHeight() * 0.3f
         );
         stage.addActor(playersLabel);
@@ -111,7 +114,7 @@ public class MenuScreen implements Screen {
         startButton.setSize(buttonWidth, buttonHeight);
 
         startButton.setPosition(
-            Gdx.graphics.getWidth() * 0.07f,
+            Gdx.graphics.getWidth() * 0.4f,
             Gdx.graphics.getHeight() * 0.1f
         );
 
@@ -134,13 +137,20 @@ public class MenuScreen implements Screen {
         stage.addActor(startButton);
 
         backgroundTexture = new Texture(Gdx.files.internal("game_assets/backgrounds/home_bg.png"));
+        // orbTexture = new Texture(Gdx.files.internal("game_assets/items/orb.png"));
         orbTexture = new Texture(Gdx.files.internal("game_assets/items/orb.png"));
-
+        TextureRegion[][] orbTmp = TextureRegion.split(orbTexture, 16, 16);
+        TextureRegion[] orbFrames = new TextureRegion[28];
+        for (int i = 0; i < 28; i++) {
+            orbFrames[i] = orbTmp[0][i];
+        }
+        orbAnimation = new Animation<>(0.1f, orbFrames);
     }
 
     @Override
     public void render(float delta) {
         // ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
+        stateTime += Gdx.graphics.getDeltaTime();
         if(conn.gameState != null) {
             if(conn.gameState.has("started")) {
                 if(conn.gameState.getBoolean("started")) {
@@ -186,13 +196,13 @@ public class MenuScreen implements Screen {
         float y = Gdx.graphics.getHeight() * 0.9f;
         titleFont.draw(batch, title, x, y);
 
-        TextureRegion orbRegion = new TextureRegion(orbTexture, 0, 0, 16, orbTexture.getHeight());
+        TextureRegion currentFrame = orbAnimation.getKeyFrame(stateTime, true);
         batch.draw(
-            orbRegion,
-            Gdx.graphics.getWidth()*0.6f,
-            Gdx.graphics.getHeight() / 2f,
-            400,
-            400
+            currentFrame,
+            Gdx.graphics.getWidth() * 0.6f,
+            Gdx.graphics.getHeight() * 0.5f,
+            300,
+            300
         );
 
         batch.end();
@@ -222,6 +232,6 @@ public class MenuScreen implements Screen {
         stage.dispose();
         skin.dispose();
         backgroundTexture.dispose();
-
+        orbTexture.dispose();
     }
 }
