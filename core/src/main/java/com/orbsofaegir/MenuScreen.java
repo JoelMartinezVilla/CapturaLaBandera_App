@@ -7,14 +7,12 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
@@ -29,8 +27,11 @@ public class MenuScreen implements Screen {
     private Skin skin;
     private Label playersLabel;
     private Label.LabelStyle labelStyle;
+    private Label countLabel;
     private Texture orbTexture;
+    private Texture backgroundTexture;
     private TextButton startButton;
+    private boolean isReady;
 
     private int waitingTime = 0;
 
@@ -84,19 +85,26 @@ public class MenuScreen implements Screen {
             playersLabel = new Label("Connecting...", labelStyle);
         }
 
+        countLabel = new Label("", labelStyle);
 
-        // Posición del label (encima del botón)
+
         float labelWidth = Gdx.graphics.getWidth() * 0.4f;
         float labelHeight = Gdx.graphics.getHeight() * 0.05f;
         playersLabel.setSize(labelWidth, labelHeight);
+        countLabel.setSize(labelWidth, labelHeight);
         playersLabel.setPosition(
             Gdx.graphics.getWidth() * 0.07f,
             Gdx.graphics.getHeight() * 0.7f
         );
+        countLabel.setPosition(
+            Gdx.graphics.getWidth() * 0.085f,
+            Gdx.graphics.getHeight() * 0.3f
+        );
         stage.addActor(playersLabel);
+        stage.addActor(countLabel);
 
         // Boton Start Game
-        startButton = new TextButton("Ready", buttonStyle);
+        startButton = new TextButton("Ready!", buttonStyle);
 
         float buttonWidth = Gdx.graphics.getWidth() * 0.2f;
         float buttonHeight = Gdx.graphics.getHeight() * 0.15f;
@@ -113,25 +121,26 @@ public class MenuScreen implements Screen {
         startButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                if(waitingTime == 0) {
-                    conn.sendData("{\"type\":\"ready\", \"id\":\""+conn.playerId+"\"}");
-                    startButton.setDisabled(true);
+                conn.sendData("{\"type\":\"ready\", \"id\":\""+conn.playerId+"\"}");
+                if(isReady) {
+                    isReady = false;
+                    countLabel.setText("");
+                } else {
+                    isReady = true;
                 }
             }
         });
 
         stage.addActor(startButton);
 
+        backgroundTexture = new Texture(Gdx.files.internal("game_assets/backgrounds/home_bg.png"));
         orbTexture = new Texture(Gdx.files.internal("game_assets/items/orb.png"));
 
     }
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
-
-
-
+        // ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
         if(conn.gameState != null) {
             if(conn.gameState.has("started")) {
                 if(conn.gameState.getBoolean("started")) {
@@ -139,16 +148,29 @@ public class MenuScreen implements Screen {
                 }
                 waitingTime = conn.gameState.getInt("timeToStart");
                 if(waitingTime > 0) {
-                    startButton.setText("Waiting... "+waitingTime+"s left");
+                    countLabel.setText("Starting in "+String.valueOf(waitingTime)+"s");
+                    isReady = true;
+                } else {
+                    countLabel.setText("");
+                    isReady = false;
+                }
+                if(isReady) {
+                    startButton.setText("Not ready");
                 }else {
-                    startButton.setText("Ready");
-                    startButton.setDisabled(false);
+                    startButton.setText("Ready!");
                 }
             }
 
         }
 
         batch.begin();
+        batch.draw(
+            backgroundTexture,
+            0,
+            0,
+            Gdx.graphics.getWidth(),
+            Gdx.graphics.getHeight()
+        );
 
         if (conn.gameState != null && conn.gameState.has("players")) {
             int numPlayers = conn.gameState.get("players").size; // Asegúrate que 'players' sea un array
@@ -199,5 +221,7 @@ public class MenuScreen implements Screen {
         titleFont.dispose();
         stage.dispose();
         skin.dispose();
+        backgroundTexture.dispose();
+
     }
 }

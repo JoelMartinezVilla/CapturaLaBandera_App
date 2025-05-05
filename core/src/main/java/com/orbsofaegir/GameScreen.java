@@ -39,7 +39,11 @@ public class GameScreen implements Screen {
     private Stage stage;
     private SpriteBatch batch;
     private ShapeRenderer shapeRenderer;
-    private BitmapFont font;
+    private BitmapFont whiteFont;
+    private BitmapFont redFont;
+    private BitmapFont yellowFont;
+    private BitmapFont greenFont;
+    private BitmapFont blueFont;
     private Texture backgroundTexture;
 
     private ArrayList<Texture> idleCharacters;
@@ -140,10 +144,6 @@ public class GameScreen implements Screen {
         stage = new Stage(viewport, batch);
         Gdx.input.setInputProcessor(stage);
 
-        // Cargar Skin para la interfaz
-        FileHandle f = Gdx.files.internal("uiskin.json");
-        Skin skin = new Skin(f);
-
         // Cargar el background
         backgroundTexture = new Texture("game_assets/backgrounds/background.png");
 
@@ -154,7 +154,19 @@ public class GameScreen implements Screen {
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
         parameter.size = 64;
 
-        font = generator.generateFont(parameter);
+        whiteFont = generator.generateFont(parameter);
+
+        parameter.color = Color.RED;
+        redFont = generator.generateFont(parameter);
+
+        parameter.color = Color.YELLOW;
+        yellowFont = generator.generateFont(parameter);
+
+        parameter.color = Color.GREEN;
+        greenFont = generator.generateFont(parameter);
+
+        parameter.color = Color.BLUE;
+        blueFont = generator.generateFont(parameter);
         generator.dispose();
 
     }
@@ -197,7 +209,11 @@ public class GameScreen implements Screen {
     public void dispose() {
         if (batch != null) batch.dispose();
         if (shapeRenderer != null) shapeRenderer.dispose();
-        if (font != null) font.dispose();
+        if (whiteFont != null) whiteFont.dispose();
+        if (redFont != null) whiteFont.dispose();
+        if (blueFont != null) whiteFont.dispose();
+        if (yellowFont != null) whiteFont.dispose();
+        if (greenFont != null) whiteFont.dispose();
         if (stage != null) stage.dispose();
     }
 
@@ -244,29 +260,35 @@ public class GameScreen implements Screen {
         if (conn.gameState.has("players")) {
             JsonValue players = conn.gameState.get("players");
             batch.begin();
+            batch.setProjectionMatrix(hudCamera.combined);
             for(int i = 0; i < players.size; i++) {
                 JsonValue player = players.get(i);
 
                 if(player.getString("id").equals(conn.playerId)) {
-                    pointsText = String.valueOf(player.getInt("points"));
+
                     int timeLeft = conn.gameState.getInt("time");
                     String minutesLeft = String.valueOf(timeLeft / 60);
                     String secondsLeft = String.format("%02d", timeLeft % 60);
 
-                    batch.setProjectionMatrix(hudCamera.combined);
+                    whiteFont.draw(batch, minutesLeft + ":" + secondsLeft, SCREEN_WIDTH - 130, SCREEN_HEIGHT - 80);
+                }
+                pointsText = String.valueOf(player.getInt("points"));
+                switch (player.getString("color")) {
 
-
-                    font.draw(batch, pointsText, SCREEN_WIDTH - 130, SCREEN_HEIGHT - 20);
-                    font.draw(batch, minutesLeft + ":" + secondsLeft, SCREEN_WIDTH - 130, SCREEN_HEIGHT - 80);
-                }else {
-                    FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/VT323.ttf"));
-                    FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
-                    parameter.size = 64;
-                    parameter.color = COLORS[i].equals("red") ? Color.RED : COLORS[i].equals("yellow") ? Color.YELLOW : COLORS[i].equals("blue") ? Color.BLUE : Color.GREEN ;
-                    font = generator.generateFont(parameter);
-                    font.draw(batch, pointsText, SCREEN_WIDTH - 130, SCREEN_HEIGHT - 20);
-                    parameter.color = Color.WHITE;
-                    font = generator.generateFont(parameter);
+                    case "red":
+                        redFont.draw(batch, pointsText, 30, SCREEN_HEIGHT - (i+1)*50);
+                        break;
+                    case "yellow":
+                        yellowFont.draw(batch, pointsText, 30, SCREEN_HEIGHT - (i+1)*50);
+                        break;
+                    case "green":
+                        greenFont.draw(batch, pointsText, 30, SCREEN_HEIGHT - (i+1)*50);
+                        break;
+                    case "blue":
+                        blueFont.draw(batch, pointsText, 30, SCREEN_HEIGHT - (i+1)*50);
+                        break;
+                    default:
+                        break;
                 }
             }
             batch.end();

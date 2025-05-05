@@ -1,8 +1,6 @@
 package com.orbsofaegir;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Net;
-import com.badlogic.gdx.net.HttpRequestBuilder;
 import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 import com.github.czyzby.websocket.WebSocket;
@@ -12,7 +10,6 @@ import com.github.czyzby.websocket.WebSockets;
 public class WSManager {
     // Dirección del host y puerto
     private String address = "bandera4.ieti.site";
-    private int port = 443;
     private WebSocket socket;
     private boolean isConnected = false;
 
